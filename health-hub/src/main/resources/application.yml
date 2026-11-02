@@ -1,0 +1,24 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: health-hub
+
+supervision:
+  services:
+    - name: customer-service
+      health-url: http://localhost:8081/actuator/health
+    - name: account-service
+      health-url: http://localhost:8082/actuator/health
+    - name: transaction-service
+      health-url: http://localhost:8083/actuator/health
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
