@@ -24,8 +24,11 @@ services:
       GF_SMTP_FROM_ADDRESS: ${SMTP_FROM:-grafana@minibank.local}
       GF_SMTP_FROM_NAME: MiniBank Alerts
       GF_SMTP_STARTTLS_POLICY: ${SMTP_STARTTLS:-NoStartTLS}
+      ALERT_EMAIL: ${ALERT_EMAIL:-equipe@minibank.local}
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
 
