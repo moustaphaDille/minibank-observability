@@ -1,4 +1,82 @@
 services:
+  customer-service:
+    build: ../customer-service
+    container_name: customer-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8081:8081"
+    depends_on:
+      - tempo
+
+  account-service:
+    build: ../account-service
+    container_name: account-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8082:8082"
+    depends_on:
+      - customer-service
+      - tempo
+
+  transaction-service:
+    build: ../transaction-service
+    container_name: transaction-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8083:8083"
+    depends_on:
+      - account-service
+      - tempo
+
+  health-hub:
+    build: ../health-hub
+    container_name: health-hub
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8090:8090"
+    depends_on:
+      - customer-service
+      - account-service
+      - transaction-service
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    container_name: tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo.yaml:ro
+    ports:
+      - "3200:3200"
+
+  loki:
+    image: grafana/loki:3.2.1
+    container_name: loki
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./loki/loki.yaml:/etc/loki/loki.yaml:ro
+    ports:
+      - "3100:3100"
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "12345:12345"
+    depends_on:
+      - loki
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -6,8 +84,6 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
   grafana:
     image: grafana/grafana:latest
@@ -25,12 +101,16 @@ services:
       GF_SMTP_FROM_NAME: MiniBank Alerts
       GF_SMTP_STARTTLS_POLICY: ${SMTP_STARTTLS:-NoStartTLS}
       ALERT_EMAIL: ${ALERT_EMAIL:-equipe@minibank.local}
+      ALERT_EMAIL_CLIENTS: ${ALERT_EMAIL_CLIENTS:-clients@minibank.local}
+      ALERT_EMAIL_PAIEMENTS: ${ALERT_EMAIL_PAIEMENTS:-paiements@minibank.local}
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
+      - tempo
+      - loki
 
   mailhog:
     image: mailhog/mailhog

@@ -1,0 +1,16 @@
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: email-perso
+    group_by: ['alertname']
+    group_wait: 10s
+    group_interval: 1m
+    repeat_interval: 4h
+    routes:
+      - receiver: email-clients
+        object_matchers:
+          - ['owner', '=', 'equipe-clients']
+      - receiver: email-paiements
+        object_matchers:
+          - ['owner', '=', 'equipe-paiements']

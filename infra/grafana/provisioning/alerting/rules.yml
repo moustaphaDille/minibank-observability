@@ -1,7 +1,6 @@
 apiVersion: 1
 
 groups:
-  # --- Pannes : on veut être prévenu vite ---
   - orgId: 1
     name: services-critical
     folder: MiniBank
@@ -42,14 +41,49 @@ groups:
         for: 30s
         annotations:
           summary: "{{ $labels.application }} est DOWN"
-          description: "Le service {{ $labels.application }} ne répond plus depuis plus de 30 secondes."
+          description: "Le service {{ $labels.application }} (responsable : {{ $labels.owner }}) ne répond plus depuis plus de 30 secondes."
         labels:
           severity: critical
-        notification_settings:
-          receiver: email-perso
-          group_wait: 10s
 
-  # --- Qualité : on tolère un peu de bruit, on confirme plus longtemps ---
+      - uid: compensation-failed
+        title: Compensation-echouee
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum by (application, owner) (increase(minibank_compensation_failures_total[5m]))
+              instant: true
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: "{{ $labels.application }} : compensation échouée"
+          description: "Un compte a été débité sans que la cible soit créditée, et le remboursement a échoué aussi. Vérifier les transactions et rembourser manuellement. Responsable : {{ $labels.owner }}."
+        labels:
+          severity: critical
+
   - orgId: 1
     name: services-quality
     folder: MiniBank
@@ -65,7 +99,7 @@ groups:
               to: 0
             datasourceUid: prometheus
             model:
-              expr: sum by (application) (rate(http_server_requests_seconds_count{status=~"5..",uri!~"/actuator.*"}[2m])) / sum by (application) (rate(http_server_requests_seconds_count{uri!~"/actuator.*"}[2m]))
+              expr: sum by (application, owner) (rate(http_server_requests_seconds_count{status=~"5..",uri!~"/actuator.*"}[2m])) / sum by (application, owner) (rate(http_server_requests_seconds_count{uri!~"/actuator.*"}[2m]))
               instant: true
               refId: A
           - refId: B
@@ -90,8 +124,6 @@ groups:
         for: 2m
         annotations:
           summary: "{{ $labels.application }} : plus de 5 % d'erreurs serveur"
-          description: "Le service {{ $labels.application }} renvoie plus de 5 % d'erreurs 5xx depuis 2 minutes."
+          description: "Le service {{ $labels.application }} (responsable : {{ $labels.owner }}) renvoie plus de 5 % d'erreurs 5xx depuis 2 minutes."
         labels:
           severity: warning
-        notification_settings:
-          receiver: email-perso

@@ -8,3 +8,19 @@ contactPoints:
         type: email
         settings:
           addresses: ${ALERT_EMAIL}
+
+  - orgId: 1
+    name: email-clients
+    receivers:
+      - uid: email-clients
+        type: email
+        settings:
+          addresses: ${ALERT_EMAIL_CLIENTS}
+
+  - orgId: 1
+    name: email-paiements
+    receivers:
+      - uid: email-paiements
+        type: email
+        settings:
+          addresses: ${ALERT_EMAIL_PAIEMENTS}

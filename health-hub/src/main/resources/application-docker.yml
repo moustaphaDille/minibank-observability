@@ -1,0 +1,8 @@
+supervision:
+  services:
+    - name: customer-service
+      health-url: http://customer-service:8081/actuator/health
+    - name: account-service
+      health-url: http://account-service:8082/actuator/health
+    - name: transaction-service
+      health-url: http://transaction-service:8083/actuator/health

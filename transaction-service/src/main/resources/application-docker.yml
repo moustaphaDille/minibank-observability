@@ -1,0 +1,17 @@
+services:
+  account:
+    url: http://account-service:8082
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://tempo:4318/v1/traces
+  otlp:
+    metrics:
+      export:
+        enabled: false
